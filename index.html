@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusFlip | Student Study Station</title>
+    <style>
+        :root {
+            --bg-color: #0f1015;
+            --card-top-bg: #1c1e26;
+            --card-bot-bg: #16171f;
+            --card-border: #2c2f3c;
+            --text-color: #f8fafc;
+            --accent-color: #38bdf8;
+            --font-mono: 'JetBrains Mono', 'Courier New', Courier, monospace;
+            --backdrop-overlay: rgba(15, 16, 21, 0.82);
+        }
+
+        [data-theme="matcha"] {
+            --bg-color: #121915;
+            --card-top-bg: #1c2720;
+            --card-bot-bg: #151e18;
+            --card-border: #2d3f34;
+            --text-color: #dcfce7;
+            --accent-color: #4ade80;
+            --backdrop-overlay: rgba(18, 25, 21, 0.85);
+        }
+
+        [data-theme="cyberpunk"] {
+            --bg-color: #090314;
+            --card-top-bg: #17092c;
+            --card-bot-bg: #100620;
+            --card-border: #00f0ff;
+            --text-color: #00f0ff;
+            --accent-color: #f43f5e;
+            --backdrop-overlay: rgba(9, 3, 20, 0.85);
+        }
+
+        [data-theme="amber"] {
+            --bg-color: #16120e;
+            --card-top-bg: #271f18;
+            --card-bot-bg: #1e1711;
+            --card-border: #443528;
+            --text-color: #fef3c7;
+            --accent-color: #f59e0b;
+            --backdrop-overlay: rgba(22, 18, 14, 0.85);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            position: relative;
+            transition: background 0.4s ease;
+            overflow: hidden;
+        }
+
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--backdrop-overlay);
+            z-index: 1;
+            pointer-events: none;
+            backdrop-filter: blur(2px);
+        }
+
+        .ui-element {
+            z-index: 10;
+            position: relative;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        /* Fullscreen: Hide extra UI elements */
+        body.zen-mode .hide-in-fullscreen {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            display: none !important;
+        }
+
+        body.zen-mode .hide-bottom-in-fullscreen {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            display: none !important;
+        }
+
+        /* Header */
+        .header {
+            width: 100%;
+            max-width: 950px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .station-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            outline: none;
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            border: 1px dashed transparent;
+        }
+
+        .station-title:hover, .station-title:focus {
+            border-color: var(--accent-color);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .stats-badge {
+            background: var(--card-top-bg);
+            border: 1px solid var(--card-border);
+            padding: 0.5rem 1.2rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: flex;
+            gap: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .stats-badge span {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        /* Controls */
+        .controls-bar {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            margin-top: 0.8rem;
+        }
+
+        .btn {
+            background: var(--card-top-bg);
+            color: var(--text-color);
+            border: 1px solid var(--card-border);
+            padding: 0.5rem 0.9rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .btn:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-1px);
+        }
+
+        .btn.active {
+            background: var(--accent-color);
+            color: #0b0c10;
+            border-color: var(--accent-color);
+        }
+
+        /* Mode Selector */
+        .mode-row {
+            display: flex;
+            background: var(--card-top-bg);
+            border: 1px solid var(--card-border);
+            padding: 0.25rem;
+            border-radius: 12px;
+            gap: 0.3rem;
+            margin: 1rem 0 0.5rem;
+        }
+
+        .mode-btn {
+            background: transparent;
+            color: var(--text-color);
+            border: none;
+            padding: 0.5rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            opacity: 0.65;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            background: var(--card-bot-bg);
+            opacity: 1;
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        /* Custom Time Setter with HH, MM, SS */
+        .custom-time-setter {
+            display: none;
+            align-items: center;
+            gap: 0.6rem;
+            margin: 0.5rem 0;
+            background: var(--card-top-bg);
+            padding: 0.6rem 1.2rem;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            font-size: 0.85rem;
+        }
+
+        .custom-time-setter.show {
+            display: flex;
+        }
+
+        .custom-time-setter input {
+            width: 58px;
+            padding: 0.3rem;
+            background: var(--card-bot-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-color);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            text-align: center;
+            outline: none;
+            font-family: var(--font-mono);
+        }
+
+        /* Stage Wrapper for Absolute Centering & Scaling */
+        .stage-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: auto 0;
+            z-index: 10;
+            transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        body.zen-mode .stage-wrapper {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(1.4);
+            margin: 0;
+        }
+
+        /* Split-Flap Clock Container */
+        .clock-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.2rem;
+        }
+
+        .colon-separator {
+            font-size: 4.5rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .flip-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .flip-card {
+            position: relative;
+            width: 145px;
+            height: 190px;
+            perspective: 1200px;
+            font-family: var(--font-mono);
+            font-size: 6.2rem;
+            font-weight: 700;
+            line-height: 190px;
+            text-align: center;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+            border-radius: 14px;
+        }
+
+        .half {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 50%;
+            overflow: hidden;
+            box-sizing: border-box;
+            border-left: 2px solid var(--card-border);
+            border-right: 2px solid var(--card-border);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+
+        .half.top {
+            top: 0;
+            background-color: var(--card-top-bg);
+            border-top: 2px solid var(--card-border);
+            border-radius: 14px 14px 0 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+            transform-origin: 50% 100%;
+        }
+
+        .half.bottom {
+            bottom: 0;
+            background-color: var(--card-bot-bg);
+            border-bottom: 2px solid var(--card-border);
+            border-radius: 0 0 14px 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            transform-origin: 50% 0%;
+        }
+
+        .half span {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 200%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .half.top span { top: 0; }
+        .half.bottom span { bottom: 0; }
+
+        .flip-card::after {
+            content: '';
+            position: absolute;
+            top: calc(50% - 1px);
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(0,0,0,0.8);
+            z-index: 10;
+        }
+
+        /* =========================================
+           SYNCHRONIZED FLIP ANIMATIONS
+        ========================================= */
+
+        /* 1. Classic 3D Mechanical: Synchronized Fold & Drop */
+        body[data-flip-style="classic"] .flipping .half.top {
+            animation: syncClassicTop 0.35s cubic-bezier(0.4, 0, 0.7, 0.2) forwards;
+            z-index: 5;
+        }
+        body[data-flip-style="classic"] .flipping .half.bottom {
+            animation: syncClassicBottom 0.35s cubic-bezier(0.2, 0.7, 0.4, 1) forwards;
+            z-index: 4;
+        }
+        @keyframes syncClassicTop {
+            0% { transform: rotateX(0deg); }
+            100% { transform: rotateX(-90deg); }
+        }
+        @keyframes syncClassicBottom {
+            0% { transform: rotateX(90deg); }
+            100% { transform: rotateX(0deg); }
+        }
+
+        /* 2. Smooth Slide & Roll: Simultaneous Drift */
+        body[data-flip-style="slide"] .flipping .half.top {
+            animation: syncSlideTop 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            z-index: 4;
+        }
+        body[data-flip-style="slide"] .flipping .half.bottom {
+            animation: syncSlideBottom 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            z-index: 3;
+        }
+        @keyframes syncSlideTop {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-35%); opacity: 0; }
+        }
+        @keyframes syncSlideBottom {
+            0% { transform: translateY(35%); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        /* 3. Elastic Snap / Bounce */
+        body[data-flip-style="elastic"] .flipping .half.top {
+            animation: syncElasticTop 0.22s ease-in forwards;
+            z-index: 4;
+        }
+        body[data-flip-style="elastic"] .flipping .half.bottom {
+            animation: syncElasticBottom 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            z-index: 5;
+        }
+        @keyframes syncElasticTop {
+            0% { transform: rotateX(0deg); }
+            100% { transform: rotateX(-90deg); }
+        }
+        @keyframes syncElasticBottom {
+            0% { transform: rotateX(90deg); }
+            70% { transform: rotateX(-10deg); }
+            100% { transform: rotateX(0deg); }
+        }
+
+        /* 4. Neon Glitch Flash */
+        body[data-flip-style="glitch"] .flipping {
+            animation: glitchCard 0.28s steps(2, start) forwards;
+        }
+        body[data-flip-style="glitch"] .flipping .half.top {
+            animation: glitchFlash 0.28s ease-in-out forwards;
+        }
+        @keyframes glitchFlash {
+            0% { filter: brightness(1); transform: scale(1); }
+            50% { filter: brightness(2) drop-shadow(0 0 12px var(--accent-color)); transform: scale(1.03); }
+            100% { filter: brightness(1); transform: scale(1); }
+        }
+        @keyframes glitchCard {
+            0% { transform: translate(0, 0); }
+            50% { transform: translate(2px, -2px); }
+            100% { transform: translate(0, 0); }
+        }
+
+        .unit-label {
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.6;
+            font-weight: 600;
+        }
+
+        /* Action Buttons */
+        .action-row {
+            display: none;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn-action {
+            padding: 0.8rem 2.4rem;
+            font-size: 1rem;
+            border-radius: 50px;
+        }
+
+        /* Footer Goal */
+        .footer-task {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-top-bg);
+            border: 1px solid var(--card-border);
+            padding: 0.8rem 1.4rem;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .footer-task input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-color);
+            width: 100%;
+            font-size: 0.95rem;
+        }
+
+        /* Theme Popover */
+        .theme-popover {
+            display: none;
+            position: fixed;
+            top: 75px;
+            right: 25px;
+            background: var(--card-top-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 1.2rem;
+            z-index: 100;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+            flex-direction: column;
+            gap: 0.9rem;
+            width: 290px;
+        }
+
+        .theme-popover.open { display: flex; }
+
+        .popover-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+        }
+
+        .popover-row select, .popover-row input[type="color"] {
+            background: var(--card-bot-bg);
+            color: var(--text-color);
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .zen-exit-hint {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            background: rgba(0,0,0,0.65);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 0.6rem 1.2rem;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 99;
+            cursor: pointer;
+        }
+
+        body.zen-mode:hover .zen-exit-hint {
+            opacity: 0.95;
+        }
+
+        @media (max-width: 768px) {
+            .flip-card {
+                width: 95px;
+                height: 130px;
+                line-height: 130px;
+                font-size: 4rem;
+            }
+            .colon-separator {
+                font-size: 2.8rem;
+                margin-bottom: 1rem;
+            }
+            .clock-container {
+                gap: 0.5rem;
+            }
+            body.zen-mode .stage-wrapper {
+                transform: translate(-50%, -50%) scale(1.15);
+            }
+        }
+    </style>
+</head>
+<body data-flip-style="classic">
+
+    <div class="bg-overlay"></div>
+    <div class="zen-exit-hint" id="zenExitBtn">✕ Exit Fullscreen (Esc)</div>
+
+    <!-- Header & Student Title -->
+    <div class="header ui-element hide-in-fullscreen">
+        <div class="station-title" contenteditable="true" id="stationTitle" title="Click to personalize name">
+            STUDENT'S FOCUS STATION ✎
+        </div>
+        <div class="stats-badge">
+            <div>🔥 Streak: <span id="streakCount">0</span> Days</div>
+            <div>⏱️ Focus: <span id="studyMinutes">0</span> Mins</div>
+        </div>
+    </div>
+
+    <!-- Controls Bar -->
+    <div class="controls-bar ui-element hide-in-fullscreen">
+        <button class="btn" id="soundBtn">🔇 Sound: Off</button>
+        <button class="btn" id="formatBtn">24H</button>
+        <button class="btn" id="themeModalBtn">🎨 Customize Styles</button>
+        <button class="btn" id="fullscreenBtn">⛶ Zen Fullscreen</button>
+    </div>
+
+    <!-- Theme Popover -->
+    <div class="theme-popover" id="themePopover">
+        <div style="font-weight: 700; font-size: 0.95rem; border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem;">
+            Design & Animation
+        </div>
+
+        <div class="popover-row">
+            <span>Flip Motion:</span>
+            <select id="flipStyleSelect">
+                <option value="classic">Classic Mechanical</option>
+                <option value="slide">Smooth Slide & Roll</option>
+                <option value="elastic">Elastic Bounce</option>
+                <option value="glitch">Neon Glitch Flash</option>
+            </select>
+        </div>
+
+        <div class="popover-row">
+            <span>Color Preset:</span>
+            <select id="presetSelect">
+                <option value="default">Midnight Dark</option>
+                <option value="matcha">Matcha Green</option>
+                <option value="cyberpunk">Cyberpunk Neon</option>
+                <option value="amber">Warm Amber</option>
+            </select>
+        </div>
+        <div class="popover-row">
+            <span>Accent Color:</span>
+            <input type="color" id="accentColorPicker" value="#38bdf8">
+        </div>
+        <div class="popover-row">
+            <span>Card Tint:</span>
+            <input type="color" id="cardColorPicker" value="#1c1e26">
+        </div>
+        
+        <div style="border-top: 1px solid var(--card-border); padding-top: 0.6rem; display: flex; flex-direction: column; gap: 0.5rem;">
+            <span style="font-size: 0.85rem;">Custom Wallpaper:</span>
+            <input type="file" id="wallpaperInput" accept="image/*" style="display: none;">
+            <button class="btn" style="justify-content: center;" onclick="document.getElementById('wallpaperInput').click();">
+                🖼️ Upload Background Image
+            </button>
+            <button class="btn" id="removeWallpaperBtn" style="justify-content: center; font-size: 0.75rem; display: none;">
+                ✕ Remove Wallpaper
+            </button>
+        </div>
+    </div>
+
+    <!-- Mode Row -->
+    <div class="mode-row ui-element hide-in-fullscreen">
+        <button class="mode-btn active" data-mode="clock">Clock</button>
+        <button class="mode-btn" data-mode="pomodoro">Pomodoro (25m)</button>
+        <button class="mode-btn" data-mode="deep">Deep Work (1h)</button>
+        <button class="mode-btn" data-mode="custom">Custom Timer</button>
+    </div>
+
+    <!-- Custom HH:MM:SS Setting Bar -->
+    <div class="custom-time-setter ui-element hide-in-fullscreen" id="customSetter">
+        <span>Hours:</span>
+        <input type="number" id="customH" min="0" max="23" value="0">
+        <span>Mins:</span>
+        <input type="number" id="customM" min="0" max="59" value="45">
+        <span>Secs:</span>
+        <input type="number" id="customS" min="0" max="59" value="0">
+        <button class="btn" id="applyCustomBtn">Set</button>
+    </div>
+
+    <!-- Central Stage Area (Auto Centers and Enlarges in Fullscreen) -->
+    <div class="stage-wrapper">
+        <div class="clock-container">
+            <!-- Hours -->
+            <div class="flip-group">
+                <div class="flip-card" id="cardH">
+                    <div class="half top"><span>00</span></div>
+                    <div class="half bottom"><span>00</span></div>
+                </div>
+                <div class="unit-label">Hours</div>
+            </div>
+
+            <div class="colon-separator">:</div>
+
+            <!-- Minutes -->
+            <div class="flip-group">
+                <div class="flip-card" id="cardM">
+                    <div class="half top"><span>00</span></div>
+                    <div class="half bottom"><span>00</span></div>
+                </div>
+                <div class="unit-label">Minutes</div>
+            </div>
+
+            <div class="colon-separator">:</div>
+
+            <!-- Seconds -->
+            <div class="flip-group">
+                <div class="flip-card" id="cardS">
+                    <div class="half top"><span>00</span></div>
+                    <div class="half bottom"><span>00</span></div>
+                </div>
+                <div class="unit-label">Seconds</div>
+            </div>
+        </div>
+
+        <!-- Timer Action Buttons (Pause/Resume available in center stage) -->
+        <div class="action-row" id="timerActions">
+            <button class="btn btn-action active" id="startBtn">▶ Start</button>
+            <button class="btn btn-action" id="resetBtn">↺ Reset</button>
+        </div>
+    </div>
+
+    <!-- Bottom Study Mission -->
+    <div class="footer-task ui-element hide-bottom-in-fullscreen">
+        <span>📌 Goal:</span>
+        <input type="text" id="targetInput" placeholder="Write what you are aiming to finish right now...">
+    </div>
+
+    <script>
+        let mode = 'clock';
+        let is24H = true;
+        let isMuted = true;
+        let timerTotalSeconds = 0;
+        let initialConfiguredSeconds = 0;
+        let timerInterval = null;
+        let isRunning = false;
+
+        const cardH = document.getElementById('cardH');
+        const cardM = document.getElementById('cardM');
+        const cardS = document.getElementById('cardS');
+        const customSetter = document.getElementById('customSetter');
+        const timerActions = document.getElementById('timerActions');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const stationTitle = document.getElementById('stationTitle');
+        const targetInput = document.getElementById('targetInput');
+        const themePopover = document.getElementById('themePopover');
+        const wallpaperInput = document.getElementById('wallpaperInput');
+        const removeWallpaperBtn = document.getElementById('removeWallpaperBtn');
+        const flipStyleSelect = document.getElementById('flipStyleSelect');
+
+        // Audio
+        let audioCtx = null;
+        function playFlipSound() {
+            if (isMuted) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.05);
+            } catch(e) {}
+        }
+
+        // Synchronous Instant Flip Function
+        function flipCard(cardEl, newVal) {
+            const formatted = String(newVal).padStart(2, '0');
+            const topSpan = cardEl.querySelector('.half.top span');
+            const botSpan = cardEl.querySelector('.half.bottom span');
+
+            if (topSpan.innerText === formatted) return;
+
+            playFlipSound();
+
+            const oldVal = topSpan.innerText;
+
+            // Remove previous temporary leaves if any exist
+            cardEl.querySelectorAll('.temp-leaf').forEach(el => el.remove());
+
+            // Build dynamic leaves
+            const leafTop = document.createElement('div');
+            leafTop.className = 'half top temp-leaf';
+            leafTop.innerHTML = `<span>${oldVal}</span>`;
+
+            const leafBot = document.createElement('div');
+            leafBot.className = 'half bottom temp-leaf';
+            leafBot.innerHTML = `<span>${formatted}</span>`;
+
+            // Prepare static background leaves
+            topSpan.innerText = formatted;
+            botSpan.innerText = oldVal;
+
+            cardEl.appendChild(leafTop);
+            cardEl.appendChild(leafBot);
+
+            cardEl.classList.remove('flipping');
+            void cardEl.offsetWidth; // Reflow to reset animation timeline
+            cardEl.classList.add('flipping');
+
+            setTimeout(() => {
+                botSpan.innerText = formatted;
+                leafTop.remove();
+                leafBot.remove();
+                cardEl.classList.remove('flipping');
+            }, 360);
+        }
+
+        // Clock Update
+        function updateClock() {
+            if (mode !== 'clock') return;
+            const now = new Date();
+            let h = now.getHours();
+            if (!is24H) h = h % 12 || 12;
+
+            flipCard(cardH, h);
+            flipCard(cardM, now.getMinutes());
+            flipCard(cardS, now.getSeconds());
+        }
+
+        // Timer Update
+        function updateTimerCards() {
+            const h = Math.floor(timerTotalSeconds / 3600);
+            const m = Math.floor((timerTotalSeconds % 3600) / 60);
+            const s = timerTotalSeconds % 60;
+            flipCard(cardH, h);
+            flipCard(cardM, m);
+            flipCard(cardS, s);
+        }
+
+        function timerTick() {
+            if (timerTotalSeconds > 0) {
+                timerTotalSeconds--;
+                updateTimerCards();
+
+                if (timerTotalSeconds % 60 === 0) {
+                    let totalMins = parseInt(localStorage.getItem('studyMins') || '0') + 1;
+                    localStorage.setItem('studyMins', totalMins);
+                    document.getElementById('studyMinutes').innerText = totalMins;
+                }
+            } else {
+                clearInterval(timerInterval);
+                isRunning = false;
+                startBtn.innerText = '▶ Start';
+                alert('Session complete! Great work.');
+            }
+        }
+
+        // Modes
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                mode = btn.dataset.mode;
+                clearInterval(timerInterval);
+                isRunning = false;
+                startBtn.innerText = '▶ Start';
+
+                if (mode === 'clock') {
+                    customSetter.classList.remove('show');
+                    timerActions.style.display = 'none';
+                    updateClock();
+                } else {
+                    timerActions.style.display = 'flex';
+                    if (mode === 'pomodoro') {
+                        customSetter.classList.remove('show');
+                        timerTotalSeconds = 25 * 60;
+                    } else if (mode === 'deep') {
+                        customSetter.classList.remove('show');
+                        timerTotalSeconds = 60 * 60;
+                    } else if (mode === 'custom') {
+                        customSetter.classList.add('show');
+                        applyCustomTimes();
+                    }
+                    initialConfiguredSeconds = timerTotalSeconds;
+                    updateTimerCards();
+                }
+            });
+        });
+
+        function applyCustomTimes() {
+            const h = parseInt(document.getElementById('customH').value) || 0;
+            const m = parseInt(document.getElementById('customM').value) || 0;
+            const s = parseInt(document.getElementById('customS').value) || 0;
+            timerTotalSeconds = (h * 3600) + (m * 60) + s;
+            initialConfiguredSeconds = timerTotalSeconds;
+            updateTimerCards();
+        }
+
+        document.getElementById('applyCustomBtn').addEventListener('click', applyCustomTimes);
+
+        startBtn.addEventListener('click', () => {
+            if (isRunning) {
+                clearInterval(timerInterval);
+                isRunning = false;
+                startBtn.innerText = '▶ Resume';
+            } else {
+                if (timerTotalSeconds <= 0) return;
+                isRunning = true;
+                startBtn.innerText = '⏸ Pause';
+                timerInterval = setInterval(timerTick, 1000);
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            clearInterval(timerInterval);
+            isRunning = false;
+            startBtn.innerText = '▶ Start';
+            timerTotalSeconds = initialConfiguredSeconds;
+            updateTimerCards();
+        });
+
+        document.getElementById('formatBtn').addEventListener('click', (e) => {
+            is24H = !is24H;
+            e.target.innerText = is24H ? '24H' : '12H';
+            updateClock();
+        });
+
+        document.getElementById('soundBtn').addEventListener('click', (e) => {
+            isMuted = !isMuted;
+            e.target.innerText = isMuted ? '🔇 Sound: Off' : '🔊 Sound: On';
+        });
+
+        // Zen Fullscreen Handlers
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const zenExitBtn = document.getElementById('zenExitBtn');
+
+        function toggleZenFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(()=>{});
+                document.body.classList.add('zen-mode');
+            } else {
+                document.exitFullscreen().catch(()=>{});
+                document.body.classList.remove('zen-mode');
+            }
+        }
+
+        fullscreenBtn.addEventListener('click', toggleZenFullscreen);
+        zenExitBtn.addEventListener('click', toggleZenFullscreen);
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                document.body.classList.remove('zen-mode');
+            } else {
+                document.body.classList.add('zen-mode');
+            }
+        });
+
+        document.getElementById('themeModalBtn').addEventListener('click', () => {
+            themePopover.classList.toggle('open');
+        });
+
+        flipStyleSelect.addEventListener('change', (e) => {
+            const chosenStyle = e.target.value;
+            document.body.setAttribute('data-flip-style', chosenStyle);
+            localStorage.setItem('savedFlipStyle', chosenStyle);
+        });
+
+        const savedStyle = localStorage.getItem('savedFlipStyle') || 'classic';
+        document.body.setAttribute('data-flip-style', savedStyle);
+        flipStyleSelect.value = savedStyle;
+
+        document.getElementById('presetSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'default') document.body.removeAttribute('data-theme');
+            else document.body.setAttribute('data-theme', val);
+        });
+
+        document.getElementById('accentColorPicker').addEventListener('input', (e) => {
+            document.documentElement.style.setProperty('--accent-color', e.target.value);
+        });
+
+        document.getElementById('cardColorPicker').addEventListener('input', (e) => {
+            document.documentElement.style.setProperty('--card-top-bg', e.target.value);
+            document.documentElement.style.setProperty('--card-bot-bg', e.target.value);
+        });
+
+        wallpaperInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const imgData = evt.target.result;
+                    document.body.style.backgroundImage = `url('${imgData}')`;
+                    try {
+                        localStorage.setItem('customWallpaper', imgData);
+                    } catch(err) {}
+                    removeWallpaperBtn.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        removeWallpaperBtn.addEventListener('click', () => {
+            document.body.style.backgroundImage = 'none';
+            localStorage.removeItem('customWallpaper');
+            removeWallpaperBtn.style.display = 'none';
+        });
+
+        const savedBg = localStorage.getItem('customWallpaper');
+        if (savedBg) {
+            document.body.style.backgroundImage = `url('${savedBg}')`;
+            removeWallpaperBtn.style.display = 'block';
+        }
+
+        if (localStorage.getItem('stationTitle')) {
+            stationTitle.innerText = localStorage.getItem('stationTitle');
+        }
+        stationTitle.addEventListener('blur', () => {
+            localStorage.setItem('stationTitle', stationTitle.innerText);
+        });
+
+        if (localStorage.getItem('studyTarget')) {
+            targetInput.value = localStorage.getItem('studyTarget');
+        }
+        targetInput.addEventListener('input', (e) => {
+            localStorage.setItem('studyTarget', e.target.value);
+        });
+
+        const streak = localStorage.getItem('studyStreak') || '1';
+        document.getElementById('streakCount').innerText = streak;
+        document.getElementById('studyMinutes').innerText = localStorage.getItem('studyMins') || '0';
+
+        setInterval(() => {
+            if (mode === 'clock') updateClock();
+        }, 1000);
+        updateClock();
+    </script>
+</body>
+</html>
