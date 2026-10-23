@@ -1,11 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+<meta name="google-site-verification" content="xlgrLSkwNByXBsOHjqWmt3FFc_rZfbRS4gQzntUinqc" />
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <meta name="google-site-verification" content="xlgrLSkwNByXBsOHjqWmt3FFc_rZfbRS4gQzntUinqc" />
     
-    <title>FocusFlip | Student Study Station</title>
+    <!-- Primary SEO Meta Tags -->
+    <title>FocusFlip | Online Aesthetic Flip Clock & Study Station</title>
+    <meta name="title" content="FocusFlip | Online Aesthetic Flip Clock & Study Station">
+    <meta name="description" content="FocusFlip is a minimal aesthetic online flip clock, pomodoro timer, and student study station. Features fullscreen zen mode, mechanical flip sound, customizable themes, and screen wake lock.">
+    <meta name="keywords" content="flip clock, online flip clock, aesthetic flip clock, pomodoro clock, study clock, full screen flip clock, flip clock screensaver, focus timer, aesthetic timer">
+    <meta name="author" content="FocusFlip">
+    <meta name="application-name" content="FocusFlip">
+    <meta name="apple-mobile-web-app-title" content="FocusFlip">
+    <link rel="canonical" href="https://flip-clock-ruddy.vercel.app/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://flip-clock-ruddy.vercel.app/">
+    <meta property="og:site_name" content="FocusFlip">
+    <meta property="og:title" content="FocusFlip | Online Aesthetic Flip Clock & Study Station">
+    <meta property="og:description" content="Aesthetic retro split-flap clock and focus timer for study sessions and productivity.">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://flip-clock-ruddy.vercel.app/">
+    <meta property="twitter:title" content="FocusFlip | Online Aesthetic Flip Clock & Study Station">
+    <meta property="twitter:description" content="Aesthetic retro split-flap clock and focus timer for study sessions and productivity.">
+
+    <!-- Google Structured Data / Schema for Site Name -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "FocusFlip",
+      "alternateName": ["FocusFlip Clock", "FocusFlip Study Station"],
+      "url": "https://flip-clock-ruddy.vercel.app/",
+      "description": "An online aesthetic flip clock and pomodoro timer for students and deep work."
+    }
+    </script>
+
     <style>
         :root {
             --bg-color: #0f1015;
@@ -353,11 +389,7 @@
             z-index: 10;
         }
 
-        /* =========================================
-           SYNCHRONIZED FLIP ANIMATIONS
-        ========================================= */
-
-        /* 1. Classic 3D Mechanical: Synchronized Fold & Drop */
+        /* Synchronized Flip Animations */
         body[data-flip-style="classic"] .flipping .half.top {
             animation: syncClassicTop 0.35s cubic-bezier(0.4, 0, 0.7, 0.2) forwards;
             z-index: 5;
@@ -375,7 +407,6 @@
             100% { transform: rotateX(0deg); }
         }
 
-        /* 2. Smooth Slide & Roll: Simultaneous Drift */
         body[data-flip-style="slide"] .flipping .half.top {
             animation: syncSlideTop 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
             z-index: 4;
@@ -393,7 +424,6 @@
             100% { transform: translateY(0); opacity: 1; }
         }
 
-        /* 3. Elastic Snap / Bounce */
         body[data-flip-style="elastic"] .flipping .half.top {
             animation: syncElasticTop 0.22s ease-in forwards;
             z-index: 4;
@@ -412,7 +442,6 @@
             100% { transform: rotateX(0deg); }
         }
 
-        /* 4. Neon Glitch Flash */
         body[data-flip-style="glitch"] .flipping {
             animation: glitchCard 0.28s steps(2, start) forwards;
         }
@@ -555,7 +584,7 @@
     <!-- Header & Student Title -->
     <div class="header ui-element hide-in-fullscreen">
         <div class="station-title" contenteditable="true" id="stationTitle" title="Click to personalize name">
-            STUDENT'S FOCUS STATION ✎
+            FOCUSFLIP STATION ✎
         </div>
         <div class="stats-badge">
             <div>🔥 Streak: <span id="streakCount">0</span> Days</div>
@@ -671,7 +700,7 @@
             </div>
         </div>
 
-        <!-- Timer Action Buttons (Pause/Resume available in center stage) -->
+        <!-- Timer Action Buttons -->
         <div class="action-row" id="timerActions">
             <button class="btn btn-action active" id="startBtn">▶ Start</button>
             <button class="btn btn-action" id="resetBtn">↺ Reset</button>
@@ -707,6 +736,40 @@
         const removeWallpaperBtn = document.getElementById('removeWallpaperBtn');
         const flipStyleSelect = document.getElementById('flipStyleSelect');
 
+        // ==========================================
+        // 1. SCREEN WAKE LOCK (PREVENTS DISPLAY SLEEP)
+        // ==========================================
+        let wakeLock = null;
+
+        async function acquireWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    wakeLock.addEventListener('release', () => {
+                        wakeLock = null;
+                    });
+                }
+            } catch (err) {
+                console.warn('Wake Lock request failed:', err);
+            }
+        }
+
+        acquireWakeLock();
+
+        // Reacquire screen lock if the user tabs away and returns
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                acquireWakeLock();
+            }
+        });
+
+        // Trigger on any interaction in case the browser blocks background invocation
+        ['click', 'touchstart', 'keydown'].forEach(evt => {
+            window.addEventListener(evt, () => {
+                if (!wakeLock) acquireWakeLock();
+            }, { once: false, passive: true });
+        });
+
         // Audio
         let audioCtx = null;
         function playFlipSound() {
@@ -739,10 +802,8 @@
 
             const oldVal = topSpan.innerText;
 
-            // Remove previous temporary leaves if any exist
             cardEl.querySelectorAll('.temp-leaf').forEach(el => el.remove());
 
-            // Build dynamic leaves
             const leafTop = document.createElement('div');
             leafTop.className = 'half top temp-leaf';
             leafTop.innerHTML = `<span>${oldVal}</span>`;
@@ -751,7 +812,6 @@
             leafBot.className = 'half bottom temp-leaf';
             leafBot.innerHTML = `<span>${formatted}</span>`;
 
-            // Prepare static background leaves
             topSpan.innerText = formatted;
             botSpan.innerText = oldVal;
 
@@ -759,7 +819,7 @@
             cardEl.appendChild(leafBot);
 
             cardEl.classList.remove('flipping');
-            void cardEl.offsetWidth; // Reflow to reset animation timeline
+            void cardEl.offsetWidth;
             cardEl.classList.add('flipping');
 
             setTimeout(() => {
