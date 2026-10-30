@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#030711">
+
+<!-- Google Search Console Verification Tag -->
+<meta name="google-site-verification" content="xlgrLSkwNByXBsOHjqWmt3FFc_rZfbRS4gQzntUinqc" />
+
+<!-- Primary SEO Meta Tags -->
+<title>Jarvish Clock — Tactical HUD Online Flip Clock, Timer & Pomodoro</title>
+<meta name="title" content="Jarvish Clock — Tactical HUD Online Flip Clock, Timer & Pomodoro">
+<meta name="description" content="Jarvish Clock is an aesthetic Iron Man inspired HUD digital clock, Pomodoro focus timer, millisecond stopwatch, and interactive voice assistant for work and study.">
+<meta name="keywords" content="jarvish clock, jarvis clock, hud clock, online clock, pomodoro timer, aesthetic timer, iron man clock, study timer fullscreen, online stopwatch">
+<meta name="robots" content="index, follow">
+<meta name="author" content="Jarvish Clock">
+
+<!-- Canonical Link -->
+<link rel="canonical" href="https://flip-clock-ruddy.vercel.app/">
+
+<!-- Open Graph / Facebook / WhatsApp Preview -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://flip-clock-ruddy.vercel.app/">
+<meta property="og:title" content="Jarvish Clock — Tactical HUD Chronometer & Focus Timer">
+<meta property="og:description" content="Futuristic HUD flip clock, Pomodoro focus timer, millisecond countdown, and audio greeting system.">
+<meta property="og:image" content="https://flip-clock-ruddy.vercel.app/og-preview.png">
+
+<!-- Twitter Card -->
+<meta property="twitter:card" content="summary_large_image">
+<meta property="twitter:url" content="https://flip-clock-ruddy.vercel.app/">
+<meta property="twitter:title" content="Jarvish Clock — Tactical HUD Chronometer & Focus Timer">
+<meta property="twitter:description" content="Futuristic HUD flip clock, Pomodoro focus timer, millisecond countdown, and audio greeting system.">
+<meta property="twitter:image" content="https://flip-clock-ruddy.vercel.app/og-preview.png">
+
+<!-- Structured Data (Schema.org / JSON-LD for Google Rich Results) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Jarvish Clock",
+  "alternateName": ["Jarvis Clock", "Jarvish HUD Clock", "FocusFlip JARVIS"],
+  "url": "https://flip-clock-ruddy.vercel.app/",
+  "applicationCategory": "ProductivityApplication",
+  "operatingSystem": "All",
+  "description": "Futuristic HUD digital chronometer, Pomodoro study sequence, and countdown timer with ambient telemetry and custom voice greetings.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  }
+}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --glow: #00f0ff;
+  --glow-rgb: 0, 240, 255;
+  --glow-dim: rgba(0, 240, 255, 0.18);
+  --bg: #030813;
+  --panel: rgba(5, 18, 36, 0.82);
+  --panel-border: rgba(0, 240, 255, 0.35);
+  --text: #e2f9ff;
+  --font-hud: 'Orbitron', monospace, sans-serif;
+  --font-data: 'Rajdhani', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background: radial-gradient(circle at center, #091a2e 0%, var(--bg) 80%);
+  color: var(--text);
+  font-family: var(--font-data);
+  min-height: 100vh;
+  overflow: hidden;
+  user-select: none;
+  transition: background 0.5s ease;
+}
+
+#hud-canvas{
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.scanlines{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), 
+              linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+  background-size: 100% 3px, 6px 100%;
+}
+.vignette{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  box-shadow: inset 0 0 100px rgba(0,0,0,0.85);
+}
+
+#alertOverlay{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 25;
+  background: radial-gradient(circle, rgba(255,30,50,0.3) 0%, transparent 80%);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+#alertOverlay.flashing{
+  animation: redAlarm 0.6s ease-in-out infinite alternate;
+}
+@keyframes redAlarm{
+  from{opacity: 0;}
+  to{opacity: 1;}
+}
+
+#splash{
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  background: #02060d;
+  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.8s;
+}
+#splash.hide{opacity: 0; visibility: hidden; pointer-events: none;}
+.arc-loader{
+  width: 150px;
+  height: 150px;
+  margin: 0 auto 25px;
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.arc-loader .ring-loader{
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px dashed var(--glow);
+  animation: spin 8s linear infinite;
+  box-shadow: 0 0 25px var(--glow-dim);
+}
+.arc-loader .core-loader{
+  width: 65px;
+  height: 65px;
+  background: radial-gradient(circle, #fff, var(--glow) 60%, transparent 80%);
+  border-radius: 50%;
+  animation: pulseCore 1.5s ease-in-out infinite alternate;
+}
+.logo{
+  font-family: var(--font-hud);
+  font-size: clamp(28px, 6vw, 56px);
+  font-weight: 900;
+  letter-spacing: 12px;
+  color: #fff;
+  text-shadow: 0 0 15px var(--glow), 0 0 35px var(--glow);
+  margin-bottom: 8px;
+}
+.splash-sub{
+  font-family: var(--font-hud);
+  font-size: 11px;
+  letter-spacing: 5px;
+  color: var(--glow);
+  opacity: 0.85;
+}
+.boot{
+  height: 3px;
+  width: min(340px, 75vw);
+  background: rgba(0, 240, 255, 0.15);
+  margin: 24px auto 16px;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+.boot:after{
+  content:"";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: var(--glow);
+  box-shadow: 0 0 12px var(--glow);
+  animation: bootBar 1.8s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+@keyframes bootBar{0%{width:0%}60%{width:70%}100%{width:100%}}
+@keyframes pulseCore{0%{transform:scale(0.85);box-shadow:0 0 15px var(--glow)}100%{transform:scale(1.15);box-shadow:0 0 35px var(--glow),0 0 55px var(--glow)}}
+
+.enter-action-box{
+  margin-top: 25px;
+  display: flex;
+  justify-content: center;
+}
+.enter-btn{
+  font-family: var(--font-hud);
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: #030711;
+  background: var(--glow);
+  border: 1px solid #fff;
+  padding: 14px 28px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-weight: 800;
+  box-shadow: 0 0 25px rgba(var(--glow-rgb), 0.7), inset 0 0 10px rgba(255,255,255,0.8);
+  animation: pulseTap 1.2s infinite alternate;
+  clip-path: polygon(10px 0%, 100% 0%, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0% 100%, 0% 10px);
+}
+@keyframes pulseTap{
+  from{transform: scale(0.98); box-shadow: 0 0 15px rgba(var(--glow-rgb), 0.5);}
+  to{transform: scale(1.05); box-shadow: 0 0 35px rgba(var(--glow-rgb), 0.95);}
+}
+
+#app{
+  position: relative;
+  z-index: 2;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+#app.ready{opacity: 1}
+
+header{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--panel-border);
+  background: rgba(4, 14, 28, 0.4);
+  backdrop-filter: blur(10px);
+  transition: transform 0.4s ease, opacity 0.4s ease;
+}
+.brand{
+  font-family: var(--font-hud);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  color: var(--glow);
+  text-shadow: 0 0 12px var(--glow);
+  margin: 0;
+}
+.brand span{color: #ffffff}
+.hud-tag{
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: rgba(226, 249, 255, 0.55);
+}
+
+button{
+  font-family: var(--font-hud);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: var(--text);
+  background: rgba(6, 24, 46, 0.65);
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  padding: 9px 16px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  clip-path: polygon(7px 0%, 100% 0%, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0% 100%, 0% 7px);
+}
+button:hover{
+  border-color: var(--glow);
+  box-shadow: 0 0 16px var(--glow-dim), inset 0 0 10px var(--glow-dim);
+  transform: translateY(-1px);
+}
+button:active{transform: scale(0.96)}
+button.active{
+  background: var(--glow);
+  color: #02070f;
+  font-weight: 700;
+  box-shadow: 0 0 20px rgba(var(--glow-rgb), 0.6);
+  border-color: var(--glow);
+}
+.controls{display: flex; gap: 8px; align-items: center}
+
+main{
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 14px;
+  transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.scene{
+  position: relative;
+  width: min(84vw, 56vh, 440px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  transition: width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+body[data-anim="warp"] .anim-enter{
+  animation: arcDeploy 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+@keyframes arcDeploy{
+  0%{transform: scale(0.4) rotate(-90deg); opacity: 0; filter: blur(14px) brightness(3);}
+  60%{transform: scale(1.06) rotate(6deg); filter: blur(0px) brightness(1.4);}
+  100%{transform: scale(1) rotate(0deg); opacity: 1; filter: blur(0px) brightness(1);}
+}
+
+body[data-anim="laser"] .anim-enter{
+  animation: laserDeploy 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+@keyframes laserDeploy{
+  0%{
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+    clip-path: polygon(0 48%, 100% 48%, 100% 52%, 0 52%);
+    filter: brightness(3) drop-shadow(0 0 25px var(--glow));
+  }
+  50%{
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+    filter: brightness(1.7);
+  }
+  100%{
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+    filter: brightness(1);
+  }
+}
+
+body[data-anim="pulse"] .anim-enter{
+  animation: quantumDeploy 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+@keyframes quantumDeploy{
+  0%{opacity: 0; transform: scale(1.35); filter: blur(16px) drop-shadow(0 0 35px var(--glow));}
+  70%{transform: scale(0.96); filter: blur(0);}
+  100%{opacity: 1; transform: scale(1); filter: blur(0);}
+}
+
+.ring{
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  transition: all 0.5s ease;
+}
+.ring.outer-radar{
+  border: 1px solid rgba(var(--glow-rgb), 0.25);
+  box-shadow: 0 0 20px rgba(var(--glow-rgb), 0.1), inset 0 0 20px rgba(var(--glow-rgb), 0.1);
+}
+.ring.outer-radar::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(var(--glow-rgb), 0.25) 0deg, transparent 65deg, transparent 360deg);
+  animation: sweep 4s linear infinite;
+}
+.ring.dial-ticks{
+  inset: 5%;
+  border: 1px dashed rgba(var(--glow-rgb), 0.45);
+  animation: spin 50s linear infinite;
+}
+.ring.slotted{
+  inset: 12%;
+  border: 2px solid transparent;
+  border-top: 2px solid var(--glow);
+  border-bottom: 2px solid var(--glow);
+  filter: drop-shadow(0 0 8px var(--glow));
+  animation: spin 16s linear infinite reverse;
+}
+.ring.triangles{
+  inset: 20%;
+  border: 1px dotted rgba(var(--glow-rgb), 0.5);
+  animation: spin 30s linear infinite;
+}
+.ring.reactor-glow{
+  inset: 27%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--glow-rgb), 0.25) 0%, transparent 70%);
+  animation: pulseHud 3.5s ease-in-out infinite;
+}
+.corner-bracket{
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--glow);
+  pointer-events: none;
+  transition: all 0.4s ease;
+}
+.cb-tl{top: -10px; left: -10px; border-right: 0; border-bottom: 0;}
+.cb-tr{top: -10px; right: -10px; border-left: 0; border-bottom: 0;}
+.cb-bl{bottom: -10px; left: -10px; border-right: 0; border-top: 0;}
+.cb-br{bottom: -10px; right: -10px; border-left: 0; border-top: 0;}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes sweep{to{transform:rotate(360deg)}}
+@keyframes pulseHud{
+  0%, 100%{transform: scale(0.97); opacity: 0.6;}
+  50%{transform: scale(1.05); opacity: 1; filter: drop-shadow(0 0 15px var(--glow));}
+}
+
+.digital{
+  text-align: center;
+  z-index: 3;
+  cursor: pointer;
+  padding: 18px;
+  background: rgba(3, 10, 20, 0.45);
+  border-radius: 50%;
+  backdrop-filter: blur(4px);
+  transition: transform 0.4s ease;
+}
+.digital:hover{
+  transform: scale(1.03);
+}
+#clock{
+  font-family: var(--font-hud);
+  font-size: clamp(34px, 8.5vw, 62px);
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #fff;
+  text-shadow: 0 0 12px var(--glow), 0 0 28px rgba(var(--glow-rgb), 0.6);
+  transition: font-size 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+#millis{
+  font-size: 0.45em;
+  opacity: 0.8;
+  color: var(--glow);
+}
+#date{
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: var(--glow);
+  margin-top: 6px;
+  font-weight: 600;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.sys-status{
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: rgba(226, 249, 255, 0.6);
+  margin-top: 8px;
+  animation: blink 2s infinite;
+}
+@keyframes blink{0%, 100%{opacity: 0.4} 50%{opacity: 1}}
+
+.screen{
+  display: none;
+  width: min(92vw, 480px);
+  text-align: center;
+  z-index: 3;
+  padding: 26px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 0 35px rgba(0,0,0,0.65), inset 0 0 25px rgba(var(--glow-rgb), 0.08);
+  border-radius: 8px;
+  position: relative;
+  clip-path: polygon(15px 0%, 100% 0%, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0% 100%, 0% 15px);
+  transition: width 0.4s ease, padding 0.4s ease;
+}
+.screen.active{
+  display: block;
+}
+
+.screen h2{
+  font-family: var(--font-hud);
+  font-size: 18px;
+  letter-spacing: 4px;
+  color: var(--glow);
+  margin-bottom: 4px;
+  text-shadow: 0 0 10px var(--glow);
+}
+.big{
+  font-family: var(--font-hud);
+  font-size: clamp(40px, 9vw, 68px);
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 3px;
+  text-shadow: 0 0 16px var(--glow);
+  margin: 18px 0;
+  cursor: pointer;
+  transition: font-size 0.4s ease, transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.big:hover{
+  transform: scale(1.02);
+}
+.fields{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+}
+.fields input{
+  width: 72px;
+  padding: 10px;
+  font-family: var(--font-hud);
+  font-size: 18px;
+  font-weight: 700;
+  background: rgba(2, 9, 18, 0.85);
+  color: var(--glow);
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  text-align: center;
+  outline: none;
+}
+.fields input:focus{
+  border-color: var(--glow);
+  box-shadow: 0 0 12px var(--glow-dim);
+}
+#laps{
+  margin-top: 15px;
+  max-height: 120px;
+  overflow-y: auto;
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  color: rgba(226, 249, 255, 0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#laps div{
+  padding: 4px 8px;
+  background: rgba(0, 240, 255, 0.05);
+  border-left: 2px solid var(--glow);
+  text-align: left;
+}
+
+#nav{
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px;
+  background: rgba(3, 10, 20, 0.5);
+  border-top: 1px solid var(--panel-border);
+  backdrop-filter: blur(8px);
+  z-index: 2;
+  transition: transform 0.4s ease, opacity 0.4s ease;
+}
+footer{
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: rgba(226, 249, 255, 0.45);
+  padding: 8px;
+  background: #02070f;
+  z-index: 2;
+  transition: opacity 0.4s ease;
+}
+
+body.fullscreen-mode header,
+body.fullscreen-mode #nav,
+body.fullscreen-mode footer,
+body.immersive header,
+body.immersive #nav,
+body.immersive footer{
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(20px);
+}
+body.fullscreen-mode header,
+body.immersive header{
+  transform: translateY(-20px);
+}
+
+body.fullscreen-mode main,
+body.immersive main{
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+body.fullscreen-mode .scene,
+body.immersive .scene{
+  width: min(92vw, 84vh, 660px) !important;
+  margin: auto !important;
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 35px rgba(var(--glow-rgb), 0.35));
+}
+body.fullscreen-mode #clock,
+body.immersive #clock{
+  font-size: clamp(52px, 12vw, 100px);
+  letter-spacing: 4px;
+}
+body.fullscreen-mode #millis,
+body.immersive #millis{
+  font-size: 0.52em;
+}
+body.fullscreen-mode #date,
+body.immersive #date{
+  font-size: 16px;
+  letter-spacing: 5px;
+  margin-top: 12px;
+}
+
+body.fullscreen-mode .screen.active,
+body.immersive .screen.active{
+  width: min(94vw, 680px) !important;
+  padding: 45px 30px !important;
+  border-width: 2px !important;
+  box-shadow: 0 0 50px rgba(var(--glow-rgb), 0.25) !important;
+  margin: auto !important;
+}
+body.fullscreen-mode .screen.active .big,
+body.immersive .screen.active .big{
+  font-size: clamp(56px, 13vw, 108px) !important;
+  letter-spacing: 4px;
+  margin: 25px 0;
+}
+body.fullscreen-mode .screen.active h2,
+body.immersive .screen.active h2{
+  font-size: 24px !important;
+  letter-spacing: 6px !important;
+}
+
+#theaterExitBtn{
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+body.fullscreen-mode:hover #theaterExitBtn,
+body.immersive:hover #theaterExitBtn{
+  opacity: 0.85;
+  pointer-events: auto;
+}
+#theaterExitBtn:hover{
+  opacity: 1;
+}
+
+#settings{
+  display: none;
+  position: fixed;
+  right: 18px;
+  top: 75px;
+  z-index: 20;
+  background: rgba(3, 12, 24, 0.94);
+  border: 1px solid var(--glow);
+  box-shadow: 0 0 35px rgba(0,0,0,0.8), 0 0 20px var(--glow-dim);
+  padding: 20px;
+  border-radius: 6px;
+  width: min(320px, 92vw);
+  backdrop-filter: blur(14px);
+}
+#settings.show{display: grid; gap: 14px;}
+.colors{display: flex; gap: 10px; justify-content: center; padding: 4px 0;}
+.dot{
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  padding: 0;
+  cursor: pointer;
+}
+.setting-group{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.anim-select{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.anim-select button{
+  font-size: 9px;
+  padding: 8px 4px;
+  letter-spacing: 1px;
+}
+
+#toast{
+  position: fixed;
+  bottom: 85px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(2, 14, 28, 0.95);
+  border: 1px solid var(--glow);
+  box-shadow: 0 0 16px var(--glow-dim);
+  color: var(--glow);
+  font-family: var(--font-hud);
+  font-size: 11px;
+  letter-spacing: 2px;
+  padding: 10px 22px;
+  border-radius: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.3s;
+  z-index: 50;
+}
+#toast.show{opacity: 1}
+
+@media(min-width: 800px){
+  body:not(.fullscreen-mode):not(.immersive) main{
+    flex-direction: row; 
+    gap: 40px;
+  }
+}
+</style>
+</head>
+<body data-anim="warp">
+
+<div id="alertOverlay"></div>
+<canvas id="hud-canvas"></canvas>
+<div class="scanlines"></div>
+<div class="vignette"></div>
+
+<button id="theaterExitBtn">✕ RESTORE HUD</button>
+
+<div id="splash">
+  <div>
+    <div class="arc-loader">
+      <div class="ring-loader"></div>
+      <div class="core-loader"></div>
+    </div>
+    <div class="logo">JARVISH CLOCK</div>
+    <div class="splash-sub">MARK VII // SYSTEM READY</div>
+    <div class="boot"></div>
+    <div class="hud-tag" id="bootText">CORE PROTOCOLS ONLINE</div>
+    
+    <div class="enter-action-box">
+      <button class="enter-btn" id="enterGateBtn">TAP TO ENTER // INITIALIZE JARVISH CLOCK</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <div>
+      <h1 class="brand">JARVISH CLOCK <span>/ HUD</span></h1>
+      <div class="hud-tag">TACTICAL REALTIME CHRONOMETER</div>
+    </div>
+    <div class="controls">
+      <button id="soundBtn" title="Audio Telemetry">SFX: ON</button>
+      <button id="settingsBtn" aria-label="System Settings">CONFIG</button>
+      <button id="fullBtn" aria-label="Fullscreen">EXPAND</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="scene anim-enter" id="scene">
+      <div class="corner-bracket cb-tl"></div>
+      <div class="corner-bracket cb-tr"></div>
+      <div class="corner-bracket cb-bl"></div>
+      <div class="corner-bracket cb-br"></div>
+      
+      <div class="ring outer-radar"></div>
+      <div class="ring dial-ticks"></div>
+      <div class="ring slotted"></div>
+      <div class="ring triangles"></div>
+      <div class="ring reactor-glow"></div>
+
+      <div class="digital" id="clockFace" title="Click to ping system / Double-click to Expand">
+        <div id="clock">00:00:00<span id="millis">.00</span></div>
+        <div id="date">SYSTEM CALENDAR</div>
+        <div class="sys-status">● REALTIME SYNC ACTIVE</div>
+      </div>
+    </div>
+
+    <section class="screen anim-enter" id="pomodoro">
+      <h2>FOCUS SEQUENCE</h2>
+      <div class="hud-tag">ARC STABILIZATION PROTOCOL</div>
+      <div class="big" id="pomoDisplay" title="Double click to expand">25:00</div>
+      <div class="controls" style="justify-content:center;">
+        <button id="pomoStart">ENGAGE</button>
+        <button id="pomoReset">ABORT</button>
+      </div>
+      <p class="hud-tag" id="pomoLabel" style="margin-top:14px;">STANDARD 25-MIN NEURAL BURST</p>
+    </section>
+
+    <section class="screen anim-enter" id="timer">
+      <h2>COUNTDOWN VECTOR</h2>
+      <div class="hud-tag">TARGET CHRONO OFFSET</div>
+      <div class="fields">
+        <input id="th" type="number" min="0" max="99" value="0" aria-label="Hours">
+        <span style="font-family:var(--font-hud);color:var(--glow)">:</span>
+        <input id="tm" type="number" min="0" max="59" value="05" aria-label="Minutes">
+        <span style="font-family:var(--font-hud);color:var(--glow)">:</span>
+        <input id="ts" type="number" min="0" max="59" value="00" aria-label="Seconds">
+      </div>
+      <div class="big" id="timerDisplay" title="Double click to expand">00:05:00</div>
+      <div class="controls" style="justify-content:center;">
+        <button id="timerStart">INITIALIZE</button>
+        <button id="timerReset">RESET</button>
+      </div>
+    </section>
+
+    <section class="screen anim-enter" id="stopwatch">
+      <h2>PRECISION CHRONO</h2>
+      <div class="hud-tag">MILLISECOND TELEMETRY</div>
+      <div class="big" id="watchDisplay" title="Double click to expand">00:00.00</div>
+      <div class="controls" style="justify-content:center;">
+        <button id="watchStart">START</button>
+        <button id="lapBtn">LOG LAP</button>
+        <button id="watchReset">FLUSH</button>
+      </div>
+      <div id="laps">TELEMETRY LOG EMPTY</div>
+    </section>
+  </main>
+
+  <nav id="nav">
+    <button class="active" data-screen="clock">◈ HUD CORE</button>
+    <button data-screen="pomodoro">◈ FOCUS</button>
+    <button data-screen="timer">◈ COUNTDOWN</button>
+    <button data-screen="stopwatch">◈ STOPWATCH</button>
+  </nav>
+
+  <footer>JARVISH CLOCK // TACTICAL AI INTERFACE // SYSTEM ACTIVE</footer>
+</div>
+
+<div id="settings">
+  <div class="brand">SYSTEM CONFIG</div>
+  
+  <div class="setting-group">
+    <div class="hud-tag">SPECTRAL FREQUENCY</div>
+    <div class="colors">
+      <button class="dot" style="background:#00f0ff" data-color="#00f0ff" data-rgb="0, 240, 255" aria-label="Cyan"></button>
+      <button class="dot" style="background:#ff9900" data-color="#ff9900" data-rgb="255, 153, 0" aria-label="Arc Orange"></button>
+      <button class="dot" style="background:#bd00ff" data-color="#bd00ff" data-rgb="189, 0, 255" aria-label="Psionic Purple"></button>
+      <button class="dot" style="background:#00ff66" data-color="#00ff66" data-rgb="0, 255, 102" aria-label="Matrix Green"></button>
+      <button class="dot" style="background:#ff2a55" data-color="#ff2a55" data-rgb="255, 42, 85" aria-label="Alert Red"></button>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="hud-tag">HUD ANIMATION MODE</div>
+    <div class="anim-select">
+      <button class="active" data-setanim="warp">WARP</button>
+      <button data-setanim="laser">LASER</button>
+      <button data-setanim="pulse">PULSE</button>
+    </div>
+  </div>
+
+  <button id="immersiveBtn">IMMERSIVE HUD</button>
+  <button id="closeSettings">DISMISS</button>
+</div>
+
+<div id="toast" role="status"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+let current = "clock", touchX = 0, soundOn = true, audioCtx = null;
+let hasEntered = false;
+
+let masterGain, bassEq, trebleEq, chorusDelay, chorusFeedback, chorusGain;
+
+function setupAudioEngine(){
+  if(audioCtx) return;
+  try{
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AudioContextClass();
+
+    masterGain = audioCtx.createGain();
+    masterGain.gain.setValueAtTime(1.0, audioCtx.currentTime);
+
+    bassEq = audioCtx.createBiquadFilter();
+    bassEq.type = "peaking";
+    bassEq.frequency.setValueAtTime(220, audioCtx.currentTime);
+    bassEq.Q.setValueAtTime(1.2, audioCtx.currentTime);
+    bassEq.gain.setValueAtTime(4.5, audioCtx.currentTime);
+
+    trebleEq = audioCtx.createBiquadFilter();
+    trebleEq.type = "highshelf";
+    trebleEq.frequency.setValueAtTime(4200, audioCtx.currentTime);
+    trebleEq.gain.setValueAtTime(3.0, audioCtx.currentTime);
+
+    chorusDelay = audioCtx.createDelay();
+    chorusDelay.delayTime.setValueAtTime(0.016, audioCtx.currentTime);
+
+    chorusFeedback = audioCtx.createGain();
+    chorusFeedback.gain.setValueAtTime(0.25, audioCtx.currentTime);
+
+    chorusGain = audioCtx.createGain();
+    chorusGain.gain.setValueAtTime(0.28, audioCtx.currentTime);
+
+    chorusDelay.connect(chorusFeedback);
+    chorusFeedback.connect(chorusDelay);
+
+    masterGain.connect(bassEq);
+    bassEq.connect(trebleEq);
+    trebleEq.connect(audioCtx.destination);
+
+    bassEq.connect(chorusDelay);
+    chorusDelay.connect(chorusGain);
+    chorusGain.connect(audioCtx.destination);
+
+    if(audioCtx.state === 'suspended'){
+      audioCtx.resume();
+    }
+  }catch(e){}
+}
+
+function playStudioChirp(){
+  if(!soundOn) return;
+  setupAudioEngine();
+  if(!audioCtx) return;
+
+  const now = audioCtx.currentTime;
+
+  const osc1 = audioCtx.createOscillator();
+  const osc2 = audioCtx.createOscillator();
+  const noteGain = audioCtx.createGain();
+
+  osc1.type = "sine";
+  osc1.frequency.setValueAtTime(880, now);
+  osc1.frequency.exponentialRampToValueAtTime(1760, now + 0.12);
+
+  osc2.type = "triangle";
+  osc2.frequency.setValueAtTime(1320, now);
+  osc2.frequency.exponentialRampToValueAtTime(2640, now + 0.12);
+
+  noteGain.gain.setValueAtTime(0.06, now);
+  noteGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
+
+  osc1.connect(noteGain);
+  osc2.connect(noteGain);
+  noteGain.connect(masterGain);
+
+  osc1.start(now);
+  osc2.start(now);
+  osc1.stop(now + 0.3);
+  osc2.stop(now + 0.3);
+}
+
+function playTone(freq = 720, type = "sine", duration = 0.08){
+  if(!soundOn) return;
+  setupAudioEngine();
+  if(!audioCtx) return;
+
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, now);
+  gain.gain.setValueAtTime(0.045, now);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+  osc.connect(gain);
+  gain.connect(masterGain);
+
+  osc.start(now);
+  osc.stop(now + duration);
+}
+
+function playAlarmTone(){
+  if(!soundOn) return;
+  setupAudioEngine();
+  for(let i = 0; i < 3; i++){
+    setTimeout(() => {
+      if(!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(920, now);
+      osc.frequency.exponentialRampToValueAtTime(460, now + 0.22);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+      osc.connect(gain);
+      gain.connect(masterGain);
+      osc.start(now);
+      osc.stop(now + 0.26);
+    }, i * 360);
+  }
+}
+
+let availableVoices = [];
+function cacheVoices(){
+  if('speechSynthesis' in window){
+    availableVoices = window.speechSynthesis.getVoices();
+  }
+}
+cacheVoices();
+if('speechSynthesis' in window){
+  window.speechSynthesis.onvoiceschanged = cacheVoices;
+}
+
+function getBestStudioVoice(){
+  if(!availableVoices.length && ('speechSynthesis' in window)){
+    availableVoices = window.speechSynthesis.getVoices();
+  }
+  const preferred = [
+    v => v.name.includes("Natural") && (v.lang.startsWith("en") || v.lang.includes("hi")),
+    v => v.name.includes("Google UK English Male"),
+    v => v.name.includes("Google UK English Female"),
+    v => v.name.includes("Google US English"),
+    v => v.name.includes("David") || v.name.includes("Ryan") || v.name.includes("George"),
+    v => v.lang.includes("en-GB"),
+    v => v.lang.includes("en-IN") || v.lang.includes("hi"),
+    v => v.lang.startsWith("en")
+  ];
+  for(let check of preferred){
+    const match = availableVoices.find(check);
+    if(match) return match;
+  }
+  return availableVoices[0] || null;
+}
+
+function speakGreetingNow(){
+  if(!soundOn || !('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+
+  const hour = new Date().getHours();
+  let timeGreeting = "Good evening";
+  if(hour >= 4 && hour < 12){
+    timeGreeting = "Good morning";
+  }else if(hour >= 12 && hour < 17){
+    timeGreeting = "Good afternoon";
+  }
+
+  const voice = getBestStudioVoice();
+
+  const part1 = new SpeechSynthesisUtterance(`Hello boss. ${timeGreeting}.`);
+  part1.rate = 0.94;
+  part1.pitch = 0.92;
+  part1.volume = 1;
+  if(voice) part1.voice = voice;
+
+  const part2 = new SpeechSynthesisUtterance("Aaj kya karna hai?");
+  part2.rate = 0.92;
+  part2.pitch = 0.90;
+  part2.volume = 1;
+  if(voice) part2.voice = voice;
+
+  part1.onend = () => {
+    setTimeout(() => {
+      window.speechSynthesis.speak(part2);
+    }, 320);
+  };
+  part1.onerror = () => {
+    setTimeout(() => {
+      window.speechSynthesis.speak(part2);
+    }, 320);
+  };
+
+  window.speechSynthesis.speak(part1);
+}
+
+function speakTimeOver(count = 3){
+  if(!soundOn || !('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+
+  const alertOverlay = $("alertOverlay");
+  alertOverlay.classList.add("flashing");
+  playAlarmTone();
+
+  let spoken = 0;
+  function speakOnce(){
+    if(spoken >= count){
+      setTimeout(() => alertOverlay.classList.remove("flashing"), 800);
+      return;
+    }
+    const utter = new SpeechSynthesisUtterance("Time over.");
+    utter.rate = 0.96;
+    utter.pitch = 0.86;
+    utter.volume = 1;
+
+    const voice = getBestStudioVoice();
+    if(voice) utter.voice = voice;
+
+    utter.onend = () => {
+      spoken++;
+      setTimeout(speakOnce, 320);
+    };
+    utter.onerror = () => {
+      spoken++;
+      setTimeout(speakOnce, 320);
+    };
+
+    window.speechSynthesis.speak(utter);
+  }
+
+  speakOnce();
+}
+
+function toast(str){
+  $("toast").textContent = str;
+  $("toast").classList.add("show");
+  playTone(950, "sine", 0.12);
+  setTimeout(() => $("toast").classList.remove("show"), 2200);
+}
+
+function pad(n){return String(n).padStart(2, "0")}
+
+function updateClock(){
+  const d = new Date();
+  const ms = Math.floor(d.getMilliseconds() / 10);
+  $("clock").innerHTML = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}<span id="millis">.${pad(ms)}</span>`;
+  $("date").textContent = d.toLocaleDateString(undefined, {weekday: "short", day: "2-digit", month: "short", year: "numeric"}).toUpperCase();
+}
+setInterval(updateClock, 35);
+updateClock();
+
+function showScreen(name){
+  current = name;
+  playStudioChirp();
+  
+  document.querySelectorAll(".screen").forEach(x => {
+    x.classList.remove("active");
+  });
+  document.querySelectorAll("#nav button").forEach(x => x.classList.toggle("active", x.dataset.screen === name));
+
+  if(name === "clock"){
+    $("scene").style.display = "grid";
+    $("scene").classList.remove("anim-enter");
+    void $("scene").offsetWidth;
+    $("scene").classList.add("anim-enter");
+  } else {
+    $("scene").style.display = "none";
+    const target = $(name);
+    target.classList.remove("anim-enter");
+    void target.offsetWidth;
+    target.classList.add("active");
+    target.classList.add("anim-enter");
+  }
+}
+document.querySelectorAll("#nav button").forEach(b => b.addEventListener("click", () => showScreen(b.dataset.screen)));
+
+$("clockFace").addEventListener("click", () => {
+  playStudioChirp();
+  toast("SYSTEM: JARVISH CLOCK SYNCHRONIZED");
+});
+
+[$("clockFace"), $("pomoDisplay"), $("timerDisplay"), $("watchDisplay")].forEach(el => {
+  if(el){
+    el.addEventListener("dblclick", () => {
+      toggleFullscreen();
+    });
+  }
+});
+
+$("settingsBtn").onclick = () => { playTone(600, "sine", 0.06); $("settings").classList.toggle("show"); };
+$("closeSettings").onclick = () => { playTone(450, "sine", 0.06); $("settings").classList.remove("show"); };
+
+function toggleImmersive(){
+  document.body.classList.toggle("immersive");
+  const isImm = document.body.classList.contains("immersive");
+  toast(isImm ? `${current.toUpperCase()} EXPANDED` : "STANDARD HUD RESTORED");
+}
+$("immersiveBtn").onclick = toggleImmersive;
+
+$("theaterExitBtn").onclick = () => {
+  if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+  document.body.classList.remove("immersive");
+  document.body.classList.remove("fullscreen-mode");
+  toast("STANDARD HUD RESTORED");
+};
+
+$("soundBtn").onclick = () => {
+  soundOn = !soundOn;
+  $("soundBtn").textContent = soundOn ? "SFX: ON" : "SFX: MUTED";
+  if(soundOn){
+    setupAudioEngine();
+    playStudioChirp();
+    toast("STUDIO AUDIO ONLINE");
+  } else {
+    if('speechSynthesis' in window) window.speechSynthesis.cancel();
+  }
+};
+
+async function toggleFullscreen(){
+  try{
+    if(!document.fullscreenElement){
+      await document.documentElement.requestFullscreen();
+      document.body.classList.add("fullscreen-mode");
+      toast(`${current.toUpperCase()} FULLSCREEN`);
+    } else {
+      await document.exitFullscreen();
+      document.body.classList.remove("fullscreen-mode");
+      toast("FULLSCREEN DISENGAGED");
+    }
+  }catch(e){
+    toggleImmersive();
+  }
+}
+$("fullBtn").onclick = toggleFullscreen;
+
+document.addEventListener("fullscreenchange", () => {
+  if(document.fullscreenElement){
+    document.body.classList.add("fullscreen-mode");
+  } else {
+    document.body.classList.remove("fullscreen-mode");
+  }
+});
+
+document.querySelectorAll("[data-setanim]").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll("[data-setanim]").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    const anim = b.dataset.setanim;
+    document.body.setAttribute("data-anim", anim);
+    localStorage.setItem("jarvisAnim", anim);
+    playStudioChirp();
+    toast(`ANIMATION: ${anim.toUpperCase()}`);
+    showScreen(current);
+  };
+});
+try{
+  const savedAnim = localStorage.getItem("jarvisAnim");
+  if(savedAnim){
+    document.body.setAttribute("data-anim", savedAnim);
+    document.querySelectorAll("[data-setanim]").forEach(x => {
+      x.classList.toggle("active", x.dataset.setanim === savedAnim);
+    });
+  }
+}catch(e){}
+
+document.querySelectorAll("[data-color]").forEach(b => {
+  b.onclick = () => {
+    const col = b.dataset.color;
+    const rgb = b.dataset.rgb;
+    document.documentElement.style.setProperty("--glow", col);
+    document.documentElement.style.setProperty("--glow-rgb", rgb);
+    localStorage.setItem("jarvisColor", col);
+    localStorage.setItem("jarvisRgb", rgb);
+    playStudioChirp();
+  };
+});
+try{
+  const savedColor = localStorage.getItem("jarvisColor");
+  const savedRgb = localStorage.getItem("jarvisRgb");
+  if(savedColor) document.documentElement.style.setProperty("--glow", savedColor);
+  if(savedRgb) document.documentElement.style.setProperty("--glow-rgb", savedRgb);
+}catch(e){}
+
+// Pomodoro
+let pomo = 25 * 60, pomoRunning = false, pomoEnd = 0, pomoInterval;
+function fmt(s){ s = Math.max(0, Math.ceil(s)); return pad(Math.floor(s / 60)) + ":" + pad(s % 60); }
+function drawPomo(){
+  let left = pomoRunning ? Math.max(0, Math.ceil((pomoEnd - Date.now()) / 1000)) : pomo;
+  $("pomoDisplay").textContent = fmt(left);
+  if(left <= 0 && pomoRunning){
+    pomoRunning = false;
+    clearInterval(pomoInterval);
+    pomo = 5 * 60;
+    $("pomoStart").textContent = "ENGAGE";
+    $("pomoLabel").textContent = "FOCUS COMPLETE // COMMENCE RECOVERY";
+    toast("ARC SEQUENCE COMPLETE");
+    speakTimeOver(3);
+  }
+}
+$("pomoStart").onclick = () => {
+  playTone(800, "square", 0.08);
+  if(pomoRunning){
+    pomo = Math.max(0, Math.ceil((pomoEnd - Date.now()) / 1000));
+    pomoRunning = false;
+    clearInterval(pomoInterval);
+    $("pomoStart").textContent = "RESUME";
+  }else{
+    pomoEnd = Date.now() + pomo * 1000;
+    pomoRunning = true;
+    $("pomoStart").textContent = "HALT";
+    pomoInterval = setInterval(drawPomo, 200);
+  }
+  drawPomo();
+};
+$("pomoReset").onclick = () => {
+  playTone(400, "square", 0.08);
+  pomoRunning = false;
+  clearInterval(pomoInterval);
+  pomo = 25 * 60;
+  $("pomoStart").textContent = "ENGAGE";
+  $("pomoLabel").textContent = "STANDARD 25-MIN NEURAL BURST";
+  drawPomo();
+};
+
+// Countdown Timer
+let timerLeft = 300, timerRunning = false, timerEnd = 0, timerInterval;
+function readTimer(){ return Math.max(0, (+$("th").value || 0) * 3600 + (+$("tm").value || 0) * 60 + (+$("ts").value || 0)); }
+function drawTimer(){
+  let s = timerRunning ? Math.max(0, Math.ceil((timerEnd - Date.now()) / 1000)) : timerLeft;
+  $("timerDisplay").textContent = pad(Math.floor(s / 3600)) + ":" + pad(Math.floor((s % 3600) / 60)) + ":" + pad(s % 60);
+  if(s <= 0 && timerRunning){
+    timerRunning = false;
+    clearInterval(timerInterval);
+    $("timerStart").textContent = "INITIALIZE";
+    toast("COUNTDOWN ZERO REACHED");
+    speakTimeOver(3);
+  }
+}
+$("timerStart").onclick = () => {
+  playTone(800, "sine", 0.08);
+  if(timerRunning){
+    timerLeft = Math.max(0, Math.ceil((timerEnd - Date.now()) / 1000));
+    timerRunning = false;
+    clearInterval(timerInterval);
+    $("timerStart").textContent = "RESUME";
+  }else{
+    if(timerLeft <= 0) timerLeft = readTimer();
+    if(timerLeft <= 0){ toast("DEFINE INTERVAL FIRST"); return; }
+    timerEnd = Date.now() + timerLeft * 1000;
+    timerRunning = true;
+    $("timerStart").textContent = "HOLD";
+    timerInterval = setInterval(drawTimer, 200);
+  }
+  drawTimer();
+};
+$("timerReset").onclick = () => {
+  playTone(400, "sine", 0.08);
+  timerRunning = false;
+  clearInterval(timerInterval);
+  timerLeft = readTimer();
+  $("timerStart").textContent = "INITIALIZE";
+  drawTimer();
+};
+["th", "tm", "ts"].forEach(id => $(id).addEventListener("input", () => {
+  if(!timerRunning){ timerLeft = readTimer(); drawTimer(); }
+}));
+
+// Stopwatch
+let watchRunning = false, watchStart = 0, watchElapsed = 0, watchInterval;
+function drawWatch(){
+  let ms = watchElapsed + (watchRunning ? Date.now() - watchStart : 0);
+  let totalSec = Math.floor(ms / 1000);
+  let centis = Math.floor((ms % 1000) / 10);
+  $("watchDisplay").textContent = pad(Math.floor(totalSec / 60)) + ":" + pad(totalSec % 60) + "." + pad(centis);
+}
+$("watchStart").onclick = () => {
+  playTone(800, "sine", 0.06);
+  if(watchRunning){
+    watchElapsed += Date.now() - watchStart;
+    watchRunning = false;
+    clearInterval(watchInterval);
+    $("watchStart").textContent = "RESUME";
+  }else{
+    watchStart = Date.now();
+    watchRunning = true;
+    $("watchStart").textContent = "PAUSE";
+    watchInterval = setInterval(drawWatch, 30);
+  }
+  drawWatch();
+};
+$("watchReset").onclick = () => {
+  playTone(400, "sine", 0.06);
+  watchRunning = false;
+  clearInterval(watchInterval);
+  watchElapsed = 0;
+  $("watchStart").textContent = "START";
+  $("laps").innerHTML = "TELEMETRY LOG EMPTY";
+  drawWatch();
+};
+$("lapBtn").onclick = () => {
+  if(!watchRunning && watchElapsed === 0){ toast("ACTIVATE CHRONO FIRST"); return; }
+  playStudioChirp();
+  if($("laps").textContent === "TELEMETRY LOG EMPTY") $("laps").innerHTML = "";
+  let line = document.createElement("div");
+  let lapCount = $("laps").children.length + 1;
+  line.textContent = `VECT #${pad(lapCount)} // ${$("watchDisplay").textContent}`;
+  $("laps").prepend(line);
+};
+
+const screens = ["clock", "pomodoro", "timer", "stopwatch"];
+$("main").addEventListener("touchstart", e => { touchX = e.changedTouches[0].screenX; }, {passive: true});
+$("main").addEventListener("touchend", e => {
+  let dx = e.changedTouches[0].screenX - touchX;
+  if(Math.abs(dx) > 70){
+    let idx = screens.indexOf(current);
+    showScreen(screens[(idx + (dx < 0 ? 1 : 3)) % 4]);
+  }
+}, {passive: true});
+
+document.addEventListener("keydown", e => { 
+  if(e.key === "Escape"){
+    $("settings").classList.remove("show");
+    document.body.classList.remove("immersive");
+  }
+});
+
+function enterHUDInterface(){
+  if(hasEntered) return;
+  hasEntered = true;
+
+  setupAudioEngine();
+  cacheVoices();
+
+  $("splash").classList.add("hide");
+  $("app").classList.add("ready");
+  showScreen("clock");
+  playStudioChirp();
+
+  setTimeout(speakGreetingNow, 280);
+}
+
+$("enterGateBtn").addEventListener("click", enterHUDInterface);
+$("splash").addEventListener("click", enterHUDInterface);
+</script>
+</body>
+</html>
